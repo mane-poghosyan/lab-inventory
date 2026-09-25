@@ -276,7 +276,7 @@
       </div>
       <div class="form-group" style="flex:1;">
         <label>Location 2 (Sub-loc)</label>
-        <input type="text" id="f-subloc" class="form-control" placeholder="Shelf L, etc.">
+        <input type="text" id="f-subloc" class="form-control" placeholder="Shelf 1, etc.">
       </div>
     </div>
     <button class="btn" style="width:100%; margin-top:10px;" onclick="saveItem()">Save Item</button>
@@ -397,7 +397,7 @@
       });
   }
 
-  let csvFileSha = ""; // GitHub file SHA for updates
+  let csvFileSha = "";
 
   function processCSVData(text) {
     const rows = parseCSV(text);
@@ -414,22 +414,21 @@
       let finalLoc = rawLoc;
       let finalSubLoc = rawSubLoc;
 
-      // Կարգավորում ենք R (աջ) դարակները
-      if (/shelf\s*\d+\s*r/i.test(rawLoc)) {
-        finalLoc = "Shelf R";
-        const shelfNumMatch = rawLoc.match(/\d+/);
-        const shelfPrefix = shelfNumMatch ? `Shelf ${shelfNumMatch[0]}` : "";
-        finalSubLoc = finalSubLoc ? `${shelfPrefix}, ${rawSubLoc}` : shelfPrefix;
-      } 
-      // Կարգավորում ենք L (ձախ) դարակները
-      else if (/shelf\s*\d+\s*l/i.test(rawLoc)) {
-        finalLoc = "Shelf L";
-        const shelfNumMatch = rawLoc.match(/\d+/);
-        const shelfPrefix = shelfNumMatch ? `Shelf ${shelfNumMatch[0]}` : "";
-        finalSubLoc = finalSubLoc ? `${shelfPrefix}, ${rawSubLoc}` : shelfPrefix;
+      // Հանում ենք բոքսերը և թողնում միայն դարակը (Shelf 1, Shelf 2 և այլն)
+      const combinedLocStr = (rawLoc + " " + rawSubLoc);
+      const shelfNumMatch = combinedLocStr.match(/shelf\s*(\d+)/i);
+
+      if (shelfNumMatch) {
+        const shelfNum = shelfNumMatch[1];
+        finalSubLoc = `Shelf ${shelfNum}`;
+        
+        if (/r/i.test(combinedLocStr)) {
+          finalLoc = "Shelf R";
+        } else {
+          finalLoc = "Shelf L";
+        }
       }
 
-      // Մյուս լոկացիաների ստանդարտացում և կրկնօրինակների բացառում (ռեգիստրի անզգայուն ստուգում)
       let lowerLoc = finalLoc.toLowerCase().replace(/\s+/g, ' ');
       if (lowerLoc.includes('wall-mounted') || lowerLoc.includes('wall -mounted')) {
         finalLoc = "Wall-Mounted Unit";
@@ -460,7 +459,6 @@
       if (item.location) locSet.add(item.location);
     }
 
-    // Վերջնական մաքրում MAIN_LOCATIONS-ից կրկնօրինակները հանելու համար (ըստ փոքրատառ համընկնման)
     let uniqueMap = new Map();
     locSet.forEach(loc => {
       uniqueMap.set(loc.toLowerCase().trim(), loc);
