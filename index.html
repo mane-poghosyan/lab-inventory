@@ -697,7 +697,7 @@
         csvFileSha = fileData.sha;
       }
 
-      The putRes = await fetch(apiUrl, {
+      const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
           "Authorization": `token ${githubToken}`,
