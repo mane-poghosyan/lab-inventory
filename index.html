@@ -88,6 +88,1412 @@
     
     .item-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; cursor: pointer; }
     .item-title { font-size: 17px; font-weight: 700; color: #1a202c; line-height: 1.4; }
+    .item-extra-info { font-size: 13px; font-weight: normal; color: #718096; margin-left: 6px; }
+    .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-left: 8px; border: 1px solid #cbd5e0; }
+    
+    .toggle-icon { font-size: 14px; color: #718096; margin-left: 10px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .item-card.active .toggle-icon { transform: rotate(180deg); color: #3182ce; }
+
+    .item-details { 
+      max-height: 0; 
+      overflow: hidden; 
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s ease;
+      padding: 0 16px; 
+      background: #fafbfc; 
+      border-top: 0px solid #edf2f7; 
+    }
+    .item-card.active .item-details { 
+      max-height: 400px; 
+      padding: 0 16px 16px 16px; 
+      border-top: 1px solid #edf2f7; 
+    }
+
+    .details-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .details-table th, .details-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    .details-table th { color: #4a5568; font-weight: 600; width: 45%; background: #edf2f7; }
+    .details-table td { color: #2d3748; }
+
+    .admin-actions { margin-top: 12px; display: flex; gap: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+
+    .empty-msg { text-align: center; color: #777; padding: 24px; background: #fff; border-radius: 10px; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    
+    .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; }
+    .modal-title { font-size: 18px; font-weight: bold; color: #1a252c; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #a0aec0; transition: color 0.2s; }
+    .close-btn:hover { color: #2d3748; }
+    
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none; }
+    .form-control:focus { border-color: #3182ce; }
+    .row-inputs { display: flex; gap: 8px; }
+
+    .location-list { display: flex; flex-direction: column; gap: 8px; }
+    .location-item {
+      padding: 12px 16px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #2d3748;
+      transition: all 0.2s;
+    }
+    .location-item:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; transform: translateX(2px); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="admin-icon-btn" onclick="openLoginModal()" title="Admin Login">👤</div>
+    <h1>Laboratory Inventory</h1>
+    <div id="loc-badge" class="location-badge" onclick="openLocationModal()">📍 All Locations (Click to change) ✏️</div>
+    <div class="top-actions">
+      <input type="text" id="search" class="search-box" placeholder="Search item..." oninput="renderItems()">
+      <button id="add-item-btn" class="btn" style="display:none;" onclick="openItemModal()">+ Add Item</button>
+    </div>
+  </header>
+
+  <div id="inventory-list"><div class="empty-msg">Loading data...</div></div>
+</div>
+
+<!-- Login Modal -->
+<div id="login-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'login-modal')">
+  <div class="modal-content" style="max-width: 350px;">
+    <div class="modal-header">
+      <div class="modal-title">Admin Login</div>
+      <button class="close-btn" onclick="closeModal('login-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-user" class="form-control" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!">
+    </div>
+    <div class="form-group" id="token-group" style="display:none;">
+      <label>GitHub Personal Token (for auto-saving)</label>
+      <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
+      <small style="color: #718096; font-size: 11px;">Required to push changes to GitHub repository automatically.</small>
+    </div>
+    <button class="btn" style="width:100%; margin-top:10px;" onclick="handleLogin()">Login</button>
+  </div>
+</div>
+
+<!-- Location Modal -->
+<div id="loc-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'loc-modal')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Select Location</div>
+      <button class="close-btn" onclick="closeModal('loc-modal')">✕</button>
+    </div>
+    <div id="modal-loc-list" class="location-list"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div id="item-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'item-modal')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="item-modal-title">Add New Item</div>
+      <button class="close-btn" onclick="closeModal('item-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-index" value="">
+    <div class="form-group">
+      <label>Item Name *</label>
+      <input type="text" id="f-name" class="form-control" placeholder="e.g. Beaker">
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Quantity (Qty)</label>
+        <input type="number" id="f-qty" class="form-control" value="1" min="1">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Status</label>
+        <select id="f-status" class="form-control">
+          <option value="Stock">Stock</option>
+          <option value="In Use">In Use</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Details</label>
+      <input type="text" id="f-details" class="form-control" placeholder="Description or specs">
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Sterile / Non-sterile</label>
+        <select id="f-sterile" class="form-control">
+          <option value="Non-sterile">Non-sterile</option>
+          <option value="Sterile">Sterile</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Disposable / Reusable</label>
+        <select id="f-disposable" class="form-control">
+          <option value="Reusable">Reusable</option>
+          <option value="Disposable">Disposable</option>
+        </select>
+      </div>
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Location (Main)</label>
+        <select id="f-location" class="form-control" onchange="checkNewLocation(this)">
+          <!-- Dynamic options -->
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Location 2 (Sub-loc)</label>
+        <input type="text" id="f-subloc" class="form-control" placeholder="Shelf L, etc.">
+      </div>
+    </div>
+    <button class="btn" style="width:100%; margin-top:10px;" onclick="saveItem()">Save Item</button>
+  </div>
+</div>
+
+<script>
+  let currentLocation = "";
+  let parsedItems = [];
+  let MAIN_LOCATIONS = [
+    "Shelf L", "Shelf R", "Wall-Mounted Unit", 
+    "Wall Cabinet 1", "Wall Cabinet 2", "Floor Cabinet"
+  ];
+  let isAdmin = false;
+  let githubToken = localStorage.getItem('gh_token') || "";
+
+  // GitHub repository settings (զետեղված են ավտոմատ աշխատելու համար)
+  const GH_OWNER = "mane-poghosyan";
+  const GH_REPO = "lab-inventory";
+  const GH_PATH = "data.csv";
+
+  function toTitleCase(str) {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  }
+
+  function formatItemName(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function closeModalOnOverlay(e, id) { if (e.target.id === id) closeModal(id); }
+
+  function openLocationModal() { openModal('loc-modal'); }
+  function openLoginModal() {
+    if (isAdmin) {
+      if (confirm("Logout from Admin mode?")) {
+        isAdmin = false;
+        document.getElementById('add-item-btn').style.display = 'none';
+        alert("Logged out successfully.");
+        renderItems();
+      }
+      return;
+    }
+    document.getElementById('token-group').style.display = 'block';
+    document.getElementById('github-token').value = githubToken;
+    openModal('login-modal');
+  }
+
+  function handleLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value.trim();
+    const token = document.getElementById('github-token').value.trim();
+
+    if (u === 'admin' && p === 'admin_1234!') {
+      isAdmin = true;
+      if (token) {
+        githubToken = token;
+        localStorage.setItem('gh_token', token);
+      }
+      closeModal('login-modal');
+      document.getElementById('add-item-btn').style.display = 'block';
+      alert("Welcome Admin! You can now manage items.");
+      renderItems();
+    } else {
+      alert("Invalid username or password!");
+    }
+  }
+
+  function selectLocation(locName) {
+    window.location.hash = locName ? encodeURIComponent(locName) : "";
+    closeModal('loc-modal');
+  }
+
+  function checkHash() {
+    const rawHash = window.location.hash.replace("#", "").trim();
+    currentLocation = decodeURIComponent(rawHash).toLowerCase().replace(/\s+/g, ' ');
+    const badge = document.getElementById("loc-badge");
+    badge.innerText = rawHash ? "📍 Location: " + toTitleCase(decodeURIComponent(rawHash)) + " ✏️" : "📍 All Locations (Click to change) ✏️";
+    renderItems();
+  }
+
+  function parseCSV(text) {
+    let rows = [], currentRow = [], currentCell = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      let c = text[i], next = text[i + 1];
+      if (c === '"') {
+        if (inQuotes && next === '"') { currentCell += '"'; i++; } 
+        else { inQuotes = !inQuotes; }
+      } else if (c === ',' && !inQuotes) {
+        currentRow.push(currentCell.trim()); currentCell = '';
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') { i++; }
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+        currentRow = []; currentCell = '';
+      } else { currentCell += c; }
+    }
+    if (currentCell || currentRow.length > 0) {
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+    }
+    return rows;
+  }
+
+  function loadCSVData() {
+    fetch('data.csv?t=' + Date.now())
+      .then(res => res.text())
+      .then(csvText => {
+        processCSVData(csvText);
+        checkHash();
+      })
+      .catch(() => {
+        document.getElementById('inventory-list').innerHTML = `<div class="empty-msg" style="color:red;">Error loading CSV file.</div>`;
+      });
+  }
+
+  let csvFileSha = ""; // GitHub file SHA for updates
+
+  function processCSVData(text) {
+    const rows = parseCSV(text);
+    parsedItems = [];
+
+    // Extract unique locations from CSV
+    let locSet = new Set(MAIN_LOCATIONS);
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[0]) continue;
+      const item = {
+        name: formatItemName(row[0]),
+        qty: row[1] ? parseInt(row[1]) || 1 : 1,
+        status: (row[2] || 'Stock').trim(),
+        details: (row[3] || '').trim(),
+        sterile: (row[4] || 'Non-sterile').trim(),
+        disposable: (row[5] || 'Reusable').trim(),
+        location: toTitleCase((row[6] || '').trim()),
+        subLoc: toTitleCase((row[7] || '').trim())
+      };
+      parsedItems.push(item);
+      if (item.location) locSet.add(item.location);
+    }
+
+    MAIN_LOCATIONS = Array.from(locSet);
+    updateLocationDropdowns();
+  }
+
+  function updateLocationDropdowns() {
+    // Modal location list
+    const modalList = document.getElementById('modal-loc-list');
+    modalList.innerHTML = `<div class="location-item" onclick="selectLocation('')">🌐 Show All Locations</div>`;
+    MAIN_LOCATIONS.forEach(loc => {
+      const div = document.createElement('div');
+      div.className = 'location-item';
+      div.innerText = '📍 ' + loc;
+      div.onclick = () => selectLocation(loc);
+      modalList.appendChild(div);
+    });
+
+    // Item form location select
+    const select = document.getElementById('f-location');
+    select.innerHTML = '';
+    MAIN_LOCATIONS.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc;
+      opt.innerText = loc;
+      select.appendChild(opt);
+    });
+    const addOpt = document.createElement('option');
+    addOpt.value = "ADD_NEW";
+    addOpt.innerText = "+ Add New Location...";
+    select.appendChild(addOpt);
+  }
+
+  function checkNewLocation(selectEl) {
+    if (selectEl.value === "ADD_NEW") {
+      const newLoc = prompt("Enter new location name:");
+      if (newLoc && newLoc.trim()) {
+        const formatted = toTitleCase(newLoc.trim());
+        if (!MAIN_LOCATIONS.includes(formatted)) {
+          MAIN_LOCATIONS.push(formatted);
+        }
+        updateLocationDropdowns();
+        selectEl.value = formatted;
+      } else {
+        selectEl.value = MAIN_LOCATIONS[0];
+      }
+    }
+  }
+
+  function createItemCard(item, index) {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+
+    const qtyHtml = isAdmin ? `<span class="qty-badge">Qty: ${item.qty}</span>` : '';
+
+    card.innerHTML = `
+      <div class="item-header" onclick="toggleCard(this)">
+        <div class="item-title">${item.name} ${qtyHtml}</div>
+        <div class="toggle-icon">▼</div>
+      </div>
+      <div class="item-details">
+        <table class="details-table">
+          ${isAdmin ? `<tr><th>Quantity</th><td>${item.qty}</td></tr>` : ''}
+          ${item.status ? `<tr><th>Status</th><td>${item.status}</td></tr>` : ''}
+          ${item.details ? `<tr><th>Details</th><td>${item.details}</td></tr>` : ''}
+          ${item.sterile ? `<tr><th>Sterile / Non-sterile</th><td>${item.sterile}</td></tr>` : ''}
+          ${item.disposable ? `<tr><th>Disposable / Reusable</th><td>${item.disposable}</td></tr>` : ''}
+          ${item.location ? `<tr><th>Location</th><td>${item.location}${item.subLoc ? `(${item.subLoc})` : ''}</td></tr>` : ''}
+        </table>
+        ${isAdmin ? `
+          <div class="admin-actions">
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="editItem(${index})">Edit</button>
+            <button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="deleteItem(${index})">Delete</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    return card;
+  }
+
+  function renderItems() {
+    const container = document.getElementById('inventory-list');
+    const query = document.getElementById('search').value.toLowerCase().trim();
+    container.innerHTML = '';
+
+    const filteredItems = parsedItems.map((item, originalIndex) => ({item, originalIndex})).filter(({item}) => {
+      const matchSearch = item.name.toLowerCase().includes(query) || item.details.toLowerCase().includes(query);
+      const cardLoc = item.location.toLowerCase().trim();
+      let matchLoc = true;
+
+      if (currentLocation) {
+        const cleanCurrent = currentLocation.replace(/[^a-z0-9]/g, '');
+        const cleanCard = cardLoc.replace(/[^a-z0-9]/g, '');
+        matchLoc = cleanCard.includes(cleanCurrent) || cleanCurrent.includes(cleanCard);
+      }
+      return matchSearch && matchLoc;
+    });
+
+    if (filteredItems.length === 0) {
+      container.innerHTML = `<div class="empty-msg">No items found.</div>`;
+      return;
+    }
+
+    if (query) {
+      filteredItems.forEach(({item, originalIndex}) => {
+        container.appendChild(createItemCard(item, originalIndex));
+      });
+    } else {
+      const grouped = {};
+      filteredItems.forEach(({item, originalIndex}) => {
+        const locKey = item.location || "Other Locations";
+        if (!grouped[locKey]) grouped[locKey] = [];
+        grouped[locKey].push({item, originalIndex});
+      });
+
+      Object.keys(grouped).sort().forEach(locKey => {
+        const subHeader = document.createElement('div');
+        subHeader.className = 'section-header';
+        subHeader.innerText = '📍 ' + locKey;
+        container.appendChild(subHeader);
+
+        grouped[locKey].forEach(({item, originalIndex}) => {
+          container.appendChild(createItemCard(item, originalIndex));
+        });
+      });
+    }
+  }
+
+  function toggleCard(headerEl) {
+    headerEl.parentElement.classList.toggle('active');
+  }
+
+  function openItemModal(index = null) {
+    if (!isAdmin) {
+      alert("Please login as Admin first.");
+      return;
+    }
+    updateLocationDropdowns();
+    document.getElementById('edit-index').value = index !== null ? index : "";
+    document.getElementById('item-modal-title').innerText = index !== null ? "Edit Item" : "Add New Item";
+
+    if (index !== null) {
+      const item = parsedItems[index];
+      document.getElementById('f-name').value = item.name;
+      document.getElementById('f-qty').value = item.qty;
+      document.getElementById('f-status').value = item.status;
+      document.getElementById('f-details').value = item.details;
+      document.getElementById('f-sterile').value = item.sterile;
+      document.getElementById('f-disposable').value = item.disposable;
+      document.getElementById('f-location').value = item.location;
+      document.getElementById('f-subloc').value = item.subLoc;
+    } else {
+      document.getElementById('f-name').value = "";
+      document.getElementById('f-qty').value = "1";
+      document.getElementById('f-status').value = "Stock";
+      document.getElementById('f-details').value = "";
+      document.getElementById('f-sterile').value = "Non-sterile";
+      document.getElementById('f-disposable').value = "Reusable";
+      if (MAIN_LOCATIONS.length > 0) document.getElementById('f-location').value = MAIN_LOCATIONS[0];
+      document.getElementById('f-subloc').value = "";
+    }
+    openModal('item-modal');
+  }
+
+  function editItem(index) {
+    openItemModal(index);
+  }
+
+  function deleteItem(index) {
+    if (confirm(`Are you sure you want to delete "${parsedItems[index].name}"?`)) {
+      parsedItems.splice(index, 1);
+      saveDataToGitHub();
+    }
+  }
+
+  function saveItem() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) {
+      alert("Item name is required!");
+      return;
+    }
+
+    const newItem = {
+      name: formatItemName(name),
+      qty: parseInt(document.getElementById('f-qty').value) || 1,
+      status: document.getElementById('f-status').value,
+      details: document.getElementById('f-details').value.trim(),
+      sterile: document.getElementById('f-sterile').value,
+      disposable: document.getElementById('f-disposable').value,
+      location: toTitleCase(document.getElementById('f-location').value),
+      subLoc: toTitleCase(document.getElementById('f-subloc').value)
+    };
+
+    const editIndex = document.getElementById('edit-index').value;
+    if (editIndex !== "") {
+      parsedItems[parseInt(editIndex)] = newItem;
+    } else {
+      parsedItems.push(newItem);
+    }
+
+    closeModal('item-modal');
+    saveDataToGitHub();
+  }
+
+  function generateCSVText() {
+    let csv = "Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-sterile,Disposable / Reusable,Location,Location 2\n";
+    parsedItems.forEach(i => {
+      const row = [
+        `"${i.name.replace(/"/g, '""')}"`,
+        i.qty,
+        `"${i.status}"`,
+        `"${i.details.replace(/"/g, '""')}"`,
+        `"${i.sterile}"`,
+        `"${i.disposable}"`,
+        `"${i.location}"`,
+        `"${i.subLoc}"`
+      ];
+      csv += row.join(",") + "\n";
+    });
+    return csv;
+  }
+
+  async function saveDataToGitHub() {
+    if (!githubToken) {
+      const tokenPrompt = prompt("Enter your GitHub Personal Access Token to save changes online:");
+      if (!tokenPrompt) {
+        alert("Changes saved locally, but not synced to GitHub because token was missing.");
+        renderItems();
+        return;
+      }
+      githubToken = tokenPrompt.trim();
+      localStorage.setItem('gh_token', githubToken);
+    }
+
+    const csvContent = generateCSVText();
+    const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+
+    try {
+      // 1. Get current file SHA
+      const getRes = await fetch(apiUrl, {
+        headers: { "Authorization": `token ${githubToken}` }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        csvFileSha = fileData.sha;
+      }
+
+      // 2. Update file on GitHub
+      const putRes = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${githubToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "Update inventory via Admin panel",
+          content: btoa(unescape(encodeURIComponent(csvContent))),
+          sha: csvFileSha
+        })
+      });
+
+      if (putRes.ok) {
+        alert("Successfully saved and synced with GitHub!");
+        loadCSVData();
+      } else {
+        const err = await putRes.json();
+        alert("Error saving to GitHub: " + (err.message || "Unauthorized token"));
+      }
+    } catch (e) {
+      alert("Network error while saving to GitHub.");
+      console.error(e);
+      renderItems();
+    }
+  }
+
+  loadCSVData();
+  window.addEventListener('hashchange', checkHash);
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratory Inventory</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
+    }
+    body { background-color: #f4f6f8; margin: 0; padding: 16px; color: #333; }
+    .container { max-width: 800px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    header { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; position: relative; }
+    h1 { margin: 0 0 12px 0; font-size: 22px; color: #1a252c; }
+    
+    .admin-icon-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #edf2f7;
+      border: 1px solid #cbd5e0;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    .admin-icon-btn:hover { background: #e2e8f0; transform: scale(1.05); }
+
+    .location-badge { 
+      display: inline-block; 
+      background: #e3f2fd; 
+      color: #0d47a1; 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-weight: bold; 
+      margin-bottom: 12px; 
+      font-size: 14px; 
+      cursor: pointer;
+      border: 1px solid #bbdefb;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .location-badge:hover { background: #bbdefb; transform: translateY(-1px); }
+    
+    .top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+    .search-box { flex: 1; min-width: 200px; padding: 12px 16px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; transition: border-color 0.2s; }
+    .search-box:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
+    
+    .btn { background: #3182ce; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #2b6cb0; }
+    .btn-danger { background: #e53e3e; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-secondary { background: #718096; }
+    .btn-secondary:hover { background: #4a5568; }
+
+    .section-header {
+      font-size: 18px;
+      font-weight: 800;
+      color: #2b6cb0;
+      background: #ebf8ff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 20px 0 10px 0;
+      border-left: 4px solid #3182ce;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .item-card { 
+      background: #fff; 
+      border-radius: 10px; 
+      margin-bottom: 12px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
+      overflow: hidden; 
+      border: 1px solid #eef2f5; 
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+      animation: fadeIn 0.3s ease-out;
+    }
+    .item-card:hover { border-color: #cbd5e0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    
+    .item-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; cursor: pointer; }
+    .item-title { font-size: 17px; font-weight: 700; color: #1a202c; line-height: 1.4; }
+    .item-extra-info { font-size: 13px; font-weight: normal; color: #718096; margin-left: 6px; }
+    .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-left: 8px; border: 1px solid #cbd5e0; }
+    
+    .toggle-icon { font-size: 14px; color: #718096; margin-left: 10px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .item-card.active .toggle-icon { transform: rotate(180deg); color: #3182ce; }
+
+    .item-details { 
+      max-height: 0; 
+      overflow: hidden; 
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s ease;
+      padding: 0 16px; 
+      background: #fafbfc; 
+      border-top: 0px solid #edf2f7; 
+    }
+    .item-card.active .item-details { 
+      max-height: 400px; 
+      padding: 0 16px 16px 16px; 
+      border-top: 1px solid #edf2f7; 
+    }
+
+    .details-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .details-table th, .details-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    .details-table th { color: #4a5568; font-weight: 600; width: 45%; background: #edf2f7; }
+    .details-table td { color: #2d3748; }
+
+    .admin-actions { margin-top: 12px; display: flex; gap: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+
+    .empty-msg { text-align: center; color: #777; padding: 24px; background: #fff; border-radius: 10px; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    
+    .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; }
+    .modal-title { font-size: 18px; font-weight: bold; color: #1a252c; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #a0aec0; transition: color 0.2s; }
+    .close-btn:hover { color: #2d3748; }
+    
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none; }
+    .form-control:focus { border-color: #3182ce; }
+    .row-inputs { display: flex; gap: 8px; }
+
+    .location-list { display: flex; flex-direction: column; gap: 8px; }
+    .location-item {
+      padding: 12px 16px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #2d3748;
+      transition: all 0.2s;
+    }
+    .location-item:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; transform: translateX(2px); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="admin-icon-btn" onclick="openLoginModal()" title="Admin Login">👤</div>
+    <h1>Laboratory Inventory</h1>
+    <div id="loc-badge" class="location-badge" onclick="openLocationModal()">📍 All Locations (Click to change) ✏️</div>
+    <div class="top-actions">
+      <input type="text" id="search" class="search-box" placeholder="Search item..." oninput="renderItems()">
+      <button id="add-item-btn" class="btn" style="display:none;" onclick="openItemModal()">+ Add Item</button>
+    </div>
+  </header>
+
+  <div id="inventory-list"><div class="empty-msg">Loading data...</div></div>
+</div>
+
+<!-- Login Modal -->
+<div id="login-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'login-modal')">
+  <div class="modal-content" style="max-width: 350px;">
+    <div class="modal-header">
+      <div class="modal-title">Admin Login</div>
+      <button class="close-btn" onclick="closeModal('login-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-user" class="form-control" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!">
+    </div>
+    <div class="form-group" id="token-group" style="display:none;">
+      <label>GitHub Personal Token (for auto-saving)</label>
+      <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
+      <small style="color: #718096; font-size: 11px;">Required to push changes to GitHub repository automatically.</small>
+    </div>
+    <button class="btn" style="width:100%; margin-top:10px;" onclick="handleLogin()">Login</button>
+  </div>
+</div>
+
+<!-- Location Modal -->
+<div id="loc-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'loc-modal')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Select Location</div>
+      <button class="close-btn" onclick="closeModal('loc-modal')">✕</button>
+    </div>
+    <div id="modal-loc-list" class="location-list"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div id="item-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'item-modal')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="item-modal-title">Add New Item</div>
+      <button class="close-btn" onclick="closeModal('item-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-index" value="">
+    <div class="form-group">
+      <label>Item Name *</label>
+      <input type="text" id="f-name" class="form-control" placeholder="e.g. Beaker">
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Quantity (Qty)</label>
+        <input type="number" id="f-qty" class="form-control" value="1" min="1">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Status</label>
+        <select id="f-status" class="form-control">
+          <option value="Stock">Stock</option>
+          <option value="In Use">In Use</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Details</label>
+      <input type="text" id="f-details" class="form-control" placeholder="Description or specs">
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Sterile / Non-sterile</label>
+        <select id="f-sterile" class="form-control">
+          <option value="Non-sterile">Non-sterile</option>
+          <option value="Sterile">Sterile</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Disposable / Reusable</label>
+        <select id="f-disposable" class="form-control">
+          <option value="Reusable">Reusable</option>
+          <option value="Disposable">Disposable</option>
+        </select>
+      </div>
+    </div>
+    <div class="row-inputs">
+      <div class="form-group" style="flex:1;">
+        <label>Location (Main)</label>
+        <select id="f-location" class="form-control" onchange="checkNewLocation(this)">
+          <!-- Dynamic options -->
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Location 2 (Sub-loc)</label>
+        <input type="text" id="f-subloc" class="form-control" placeholder="Shelf L, etc.">
+      </div>
+    </div>
+    <button class="btn" style="width:100%; margin-top:10px;" onclick="saveItem()">Save Item</button>
+  </div>
+</div>
+
+<script>
+  let currentLocation = "";
+  let parsedItems = [];
+  let MAIN_LOCATIONS = [
+    "Shelf L", "Shelf R", "Wall-Mounted Unit", 
+    "Wall Cabinet 1", "Wall Cabinet 2", "Floor Cabinet"
+  ];
+  let isAdmin = false;
+  let githubToken = localStorage.getItem('gh_token') || "";
+
+  // GitHub repository settings (զետեղված են ավտոմատ աշխատելու համար)
+  const GH_OWNER = "mane-poghosyan";
+  const GH_REPO = "lab-inventory";
+  const GH_PATH = "data.csv";
+
+  function toTitleCase(str) {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  }
+
+  function formatItemName(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function closeModalOnOverlay(e, id) { if (e.target.id === id) closeModal(id); }
+
+  function openLocationModal() { openModal('loc-modal'); }
+  function openLoginModal() {
+    if (isAdmin) {
+      if (confirm("Logout from Admin mode?")) {
+        isAdmin = false;
+        document.getElementById('add-item-btn').style.display = 'none';
+        alert("Logged out successfully.");
+        renderItems();
+      }
+      return;
+    }
+    document.getElementById('token-group').style.display = 'block';
+    document.getElementById('github-token').value = githubToken;
+    openModal('login-modal');
+  }
+
+  function handleLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value.trim();
+    const token = document.getElementById('github-token').value.trim();
+
+    if (u === 'admin' && p === 'admin_1234!') {
+      isAdmin = true;
+      if (token) {
+        githubToken = token;
+        localStorage.setItem('gh_token', token);
+      }
+      closeModal('login-modal');
+      document.getElementById('add-item-btn').style.display = 'block';
+      alert("Welcome Admin! You can now manage items.");
+      renderItems();
+    } else {
+      alert("Invalid username or password!");
+    }
+  }
+
+  function selectLocation(locName) {
+    window.location.hash = locName ? encodeURIComponent(locName) : "";
+    closeModal('loc-modal');
+  }
+
+  function checkHash() {
+    const rawHash = window.location.hash.replace("#", "").trim();
+    currentLocation = decodeURIComponent(rawHash).toLowerCase().replace(/\s+/g, ' ');
+    const badge = document.getElementById("loc-badge");
+    badge.innerText = rawHash ? "📍 Location: " + toTitleCase(decodeURIComponent(rawHash)) + " ✏️" : "📍 All Locations (Click to change) ✏️";
+    renderItems();
+  }
+
+  function parseCSV(text) {
+    let rows = [], currentRow = [], currentCell = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      let c = text[i], next = text[i + 1];
+      if (c === '"') {
+        if (inQuotes && next === '"') { currentCell += '"'; i++; } 
+        else { inQuotes = !inQuotes; }
+      } else if (c === ',' && !inQuotes) {
+        currentRow.push(currentCell.trim()); currentCell = '';
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') { i++; }
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+        currentRow = []; currentCell = '';
+      } else { currentCell += c; }
+    }
+    if (currentCell || currentRow.length > 0) {
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+    }
+    return rows;
+  }
+
+  function loadCSVData() {
+    fetch('data.csv?t=' + Date.now())
+      .then(res => res.text())
+      .then(csvText => {
+        processCSVData(csvText);
+        checkHash();
+      })
+      .catch(() => {
+        document.getElementById('inventory-list').innerHTML = `<div class="empty-msg" style="color:red;">Error loading CSV file.</div>`;
+      });
+  }
+
+  let csvFileSha = ""; // GitHub file SHA for updates
+
+  function processCSVData(text) {
+    const rows = parseCSV(text);
+    parsedItems = [];
+
+    // Extract unique locations from CSV
+    let locSet = new Set(MAIN_LOCATIONS);
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[0]) continue;
+      const item = {
+        name: formatItemName(row[0]),
+        qty: row[1] ? parseInt(row[1]) || 1 : 1,
+        status: (row[2] || 'Stock').trim(),
+        details: (row[3] || '').trim(),
+        sterile: (row[4] || 'Non-sterile').trim(),
+        disposable: (row[5] || 'Reusable').trim(),
+        location: toTitleCase((row[6] || '').trim()),
+        subLoc: toTitleCase((row[7] || '').trim())
+      };
+      parsedItems.push(item);
+      if (item.location) locSet.add(item.location);
+    }
+
+    MAIN_LOCATIONS = Array.from(locSet);
+    updateLocationDropdowns();
+  }
+
+  function updateLocationDropdowns() {
+    // Modal location list
+    const modalList = document.getElementById('modal-loc-list');
+    modalList.innerHTML = `<div class="location-item" onclick="selectLocation('')">🌐 Show All Locations</div>`;
+    MAIN_LOCATIONS.forEach(loc => {
+      const div = document.createElement('div');
+      div.className = 'location-item';
+      div.innerText = '📍 ' + loc;
+      div.onclick = () => selectLocation(loc);
+      modalList.appendChild(div);
+    });
+
+    // Item form location select
+    const select = document.getElementById('f-location');
+    select.innerHTML = '';
+    MAIN_LOCATIONS.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc;
+      opt.innerText = loc;
+      select.appendChild(opt);
+    });
+    const addOpt = document.createElement('option');
+    addOpt.value = "ADD_NEW";
+    addOpt.innerText = "+ Add New Location...";
+    select.appendChild(addOpt);
+  }
+
+  function checkNewLocation(selectEl) {
+    if (selectEl.value === "ADD_NEW") {
+      const newLoc = prompt("Enter new location name:");
+      if (newLoc && newLoc.trim()) {
+        const formatted = toTitleCase(newLoc.trim());
+        if (!MAIN_LOCATIONS.includes(formatted)) {
+          MAIN_LOCATIONS.push(formatted);
+        }
+        updateLocationDropdowns();
+        selectEl.value = formatted;
+      } else {
+        selectEl.value = MAIN_LOCATIONS[0];
+      }
+    }
+  }
+
+  function createItemCard(item, index) {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+
+    const qtyHtml = isAdmin ? `<span class="qty-badge">Qty: ${item.qty}</span>` : '';
+
+    card.innerHTML = `
+      <div class="item-header" onclick="toggleCard(this)">
+        <div class="item-title">${item.name} ${qtyHtml}</div>
+        <div class="toggle-icon">▼</div>
+      </div>
+      <div class="item-details">
+        <table class="details-table">
+          ${isAdmin ? `<tr><th>Quantity</th><td>${item.qty}</td></tr>` : ''}
+          ${item.status ? `<tr><th>Status</th><td>${item.status}</td></tr>` : ''}
+          ${item.details ? `<tr><th>Details</th><td>${item.details}</td></tr>` : ''}
+          ${item.sterile ? `<tr><th>Sterile / Non-sterile</th><td>${item.sterile}</td></tr>` : ''}
+          ${item.disposable ? `<tr><th>Disposable / Reusable</th><td>${item.disposable}</td></tr>` : ''}
+          ${item.location ? `<tr><th>Location</th><td>${item.location}${item.subLoc ? `(${item.subLoc})` : ''}</td></tr>` : ''}
+        </table>
+        ${isAdmin ? `
+          <div class="admin-actions">
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="editItem(${index})">Edit</button>
+            <button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="deleteItem(${index})">Delete</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    return card;
+  }
+
+  function renderItems() {
+    const container = document.getElementById('inventory-list');
+    const query = document.getElementById('search').value.toLowerCase().trim();
+    container.innerHTML = '';
+
+    const filteredItems = parsedItems.map((item, originalIndex) => ({item, originalIndex})).filter(({item}) => {
+      const matchSearch = item.name.toLowerCase().includes(query) || item.details.toLowerCase().includes(query);
+      const cardLoc = item.location.toLowerCase().trim();
+      let matchLoc = true;
+
+      if (currentLocation) {
+        const cleanCurrent = currentLocation.replace(/[^a-z0-9]/g, '');
+        const cleanCard = cardLoc.replace(/[^a-z0-9]/g, '');
+        matchLoc = cleanCard.includes(cleanCurrent) || cleanCurrent.includes(cleanCard);
+      }
+      return matchSearch && matchLoc;
+    });
+
+    if (filteredItems.length === 0) {
+      container.innerHTML = `<div class="empty-msg">No items found.</div>`;
+      return;
+    }
+
+    if (query) {
+      filteredItems.forEach(({item, originalIndex}) => {
+        container.appendChild(createItemCard(item, originalIndex));
+      });
+    } else {
+      const grouped = {};
+      filteredItems.forEach(({item, originalIndex}) => {
+        const locKey = item.location || "Other Locations";
+        if (!grouped[locKey]) grouped[locKey] = [];
+        grouped[locKey].push({item, originalIndex});
+      });
+
+      Object.keys(grouped).sort().forEach(locKey => {
+        const subHeader = document.createElement('div');
+        subHeader.className = 'section-header';
+        subHeader.innerText = '📍 ' + locKey;
+        container.appendChild(subHeader);
+
+        grouped[locKey].forEach(({item, originalIndex}) => {
+          container.appendChild(createItemCard(item, originalIndex));
+        });
+      });
+    }
+  }
+
+  function toggleCard(headerEl) {
+    headerEl.parentElement.classList.toggle('active');
+  }
+
+  function openItemModal(index = null) {
+    if (!isAdmin) {
+      alert("Please login as Admin first.");
+      return;
+    }
+    updateLocationDropdowns();
+    document.getElementById('edit-index').value = index !== null ? index : "";
+    document.getElementById('item-modal-title').innerText = index !== null ? "Edit Item" : "Add New Item";
+
+    if (index !== null) {
+      const item = parsedItems[index];
+      document.getElementById('f-name').value = item.name;
+      document.getElementById('f-qty').value = item.qty;
+      document.getElementById('f-status').value = item.status;
+      document.getElementById('f-details').value = item.details;
+      document.getElementById('f-sterile').value = item.sterile;
+      document.getElementById('f-disposable').value = item.disposable;
+      document.getElementById('f-location').value = item.location;
+      document.getElementById('f-subloc').value = item.subLoc;
+    } else {
+      document.getElementById('f-name').value = "";
+      document.getElementById('f-qty').value = "1";
+      document.getElementById('f-status').value = "Stock";
+      document.getElementById('f-details').value = "";
+      document.getElementById('f-sterile').value = "Non-sterile";
+      document.getElementById('f-disposable').value = "Reusable";
+      if (MAIN_LOCATIONS.length > 0) document.getElementById('f-location').value = MAIN_LOCATIONS[0];
+      document.getElementById('f-subloc').value = "";
+    }
+    openModal('item-modal');
+  }
+
+  function editItem(index) {
+    openItemModal(index);
+  }
+
+  function deleteItem(index) {
+    if (confirm(`Are you sure you want to delete "${parsedItems[index].name}"?`)) {
+      parsedItems.splice(index, 1);
+      saveDataToGitHub();
+    }
+  }
+
+  function saveItem() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) {
+      alert("Item name is required!");
+      return;
+    }
+
+    const newItem = {
+      name: formatItemName(name),
+      qty: parseInt(document.getElementById('f-qty').value) || 1,
+      status: document.getElementById('f-status').value,
+      details: document.getElementById('f-details').value.trim(),
+      sterile: document.getElementById('f-sterile').value,
+      disposable: document.getElementById('f-disposable').value,
+      location: toTitleCase(document.getElementById('f-location').value),
+      subLoc: toTitleCase(document.getElementById('f-subloc').value)
+    };
+
+    const editIndex = document.getElementById('edit-index').value;
+    if (editIndex !== "") {
+      parsedItems[parseInt(editIndex)] = newItem;
+    } else {
+      parsedItems.push(newItem);
+    }
+
+    closeModal('item-modal');
+    saveDataToGitHub();
+  }
+
+  function generateCSVText() {
+    let csv = "Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-sterile,Disposable / Reusable,Location,Location 2\n";
+    parsedItems.forEach(i => {
+      const row = [
+        `"${i.name.replace(/"/g, '""')}"`,
+        i.qty,
+        `"${i.status}"`,
+        `"${i.details.replace(/"/g, '""')}"`,
+        `"${i.sterile}"`,
+        `"${i.disposable}"`,
+        `"${i.location}"`,
+        `"${i.subLoc}"`
+      ];
+      csv += row.join(",") + "\n";
+    });
+    return csv;
+  }
+
+  async function saveDataToGitHub() {
+    if (!githubToken) {
+      const tokenPrompt = prompt("Enter your GitHub Personal Access Token to save changes online:");
+      if (!tokenPrompt) {
+        alert("Changes saved locally, but not synced to GitHub because token was missing.");
+        renderItems();
+        return;
+      }
+      githubToken = tokenPrompt.trim();
+      localStorage.setItem('gh_token', githubToken);
+    }
+
+    const csvContent = generateCSVText();
+    const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+
+    try {
+      // 1. Get current file SHA
+      const getRes = await fetch(apiUrl, {
+        headers: { "Authorization": `token ${githubToken}` }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        csvFileSha = fileData.sha;
+      }
+
+      // 2. Update file on GitHub
+      const putRes = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${githubToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "Update inventory via Admin panel",
+          content: btoa(unescape(encodeURIComponent(csvContent))),
+          sha: csvFileSha
+        })
+      });
+
+      if (putRes.ok) {
+        alert("Successfully saved and synced with GitHub!");
+        loadCSVData();
+      } else {
+        const err = await putRes.json();
+        alert("Error saving to GitHub: " + (err.message || "Unauthorized token"));
+      }
+    } catch (e) {
+      alert("Network error while saving to GitHub.");
+      console.error(e);
+      renderItems();
+    }
+  }
+
+  loadCSVData();
+  window.addEventListener('hashchange', checkHash);
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratory Inventory</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
+    }
+    body { background-color: #f4f6f8; margin: 0; padding: 16px; color: #333; }
+    .container { max-width: 800px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    header { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; position: relative; }
+    h1 { margin: 0 0 12px 0; font-size: 22px; color: #1a252c; }
+    
+    .admin-icon-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #edf2f7;
+      border: 1px solid #cbd5e0;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    .admin-icon-btn:hover { background: #e2e8f0; transform: scale(1.05); }
+
+    .location-badge { 
+      display: inline-block; 
+      background: #e3f2fd; 
+      color: #0d47a1; 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-weight: bold; 
+      margin-bottom: 12px; 
+      font-size: 14px; 
+      cursor: pointer;
+      border: 1px solid #bbdefb;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .location-badge:hover { background: #bbdefb; transform: translateY(-1px); }
+    
+    .top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+    .search-box { flex: 1; min-width: 200px; padding: 12px 16px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; transition: border-color 0.2s; }
+    .search-box:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
+    
+    .btn { background: #3182ce; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #2b6cb0; }
+    .btn-danger { background: #e53e3e; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-secondary { background: #718096; }
+    .btn-secondary:hover { background: #4a5568; }
+
+    .section-header {
+      font-size: 18px;
+      font-weight: 800;
+      color: #2b6cb0;
+      background: #ebf8ff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 20px 0 10px 0;
+      border-left: 4px solid #3182ce;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .item-card { 
+      background: #fff; 
+      border-radius: 10px; 
+      margin-bottom: 12px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
+      overflow: hidden; 
+      border: 1px solid #eef2f5; 
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+      animation: fadeIn 0.3s ease-out;
+    }
+    .item-card:hover { border-color: #cbd5e0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    
+    .item-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; cursor: pointer; }
+    .item-title { font-size: 17px; font-weight: 700; color: #1a202c; line-height: 1.4; }
     .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-left: 8px; border: 1px solid #cbd5e0; }
     
     .toggle-icon { font-size: 14px; color: #718096; margin-left: 10px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
