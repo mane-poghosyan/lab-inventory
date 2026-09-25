@@ -461,7 +461,6 @@
   }
 
   function updateLocationDropdowns() {
-    // Modal location list
     const modalList = document.getElementById('modal-loc-list');
     modalList.innerHTML = `<div class="location-item" onclick="selectLocation('')">🌐 Show All Locations</div>`;
     MAIN_LOCATIONS.forEach(loc => {
@@ -472,7 +471,6 @@
       modalList.appendChild(div);
     });
 
-    // Item form location select
     const select = document.getElementById('f-location');
     select.innerHTML = '';
     MAIN_LOCATIONS.forEach(loc => {
@@ -558,24 +556,30 @@
     }
 
     if (query) {
+      // Եթե որոնում ենք, ցույց ենք տալիս միանգամից ըստ գտնվածների
       filteredItems.forEach(({item, originalIndex}) => {
         container.appendChild(createItemCard(item, originalIndex));
       });
     } else {
       const grouped = {};
-      filteredItems.forEach(({item, originalIndex}) => {
-        const locKey = item.location || "Other Locations";
-        if (!grouped[locKey]) grouped[locKey] = [];
-        grouped[locKey].push({item, originalIndex});
+      filteredItems.filter(({item}) => {
+        if (!currentLocation) return true;
+        // Եթե կոնկրետ լոկացիայի մեջ ենք, խմբավորում ենք ըստ ենթալոկացիայի (subLoc) կամ ասում ենք General
+        return true;
+      }).forEach(({item, originalIndex}) => {
+        // Եթե լոկացիա է ընտրված, խմբավորում ենք ըստ subLoc-ի (օրինակ՝ Shelf 1, Shelf 2 ևն), հակառակ դեպքում՝ ըստ location-ի
+        let groupKey = currentLocation ? (item.subLoc || "General") : (item.location || "Other Locations");
+        if (!grouped[groupKey]) grouped[groupKey] = [];
+        grouped[groupKey].push({item, originalIndex});
       });
 
-      Object.keys(grouped).sort().forEach(locKey => {
+      Object.keys(grouped).sort().forEach(groupKey => {
         const subHeader = document.createElement('div');
         subHeader.className = 'section-header';
-        subHeader.innerText = '📍 ' + locKey;
+        subHeader.innerText = '📍 ' + groupKey;
         container.appendChild(subHeader);
 
-        grouped[locKey].forEach(({item, originalIndex}) => {
+        grouped[groupKey].forEach(({item, originalIndex}) => {
           container.appendChild(createItemCard(item, originalIndex));
         });
       });
