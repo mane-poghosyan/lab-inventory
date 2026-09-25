@@ -176,14 +176,6 @@
     </div>
     <div id="login-form-fields">
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="login-user" class="form-control" placeholder="admin">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!">
-      </div>
-      <div class="form-group">
         <label>GitHub Personal Token</label>
         <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
         <small style="color: #718096; font-size: 11px;">Required to save changes to data.csv automatically.</small>
@@ -312,24 +304,19 @@
   }
 
   function handleLogin() {
-    const u = document.getElementById('login-user').value.trim();
-    const p = document.getElementById('login-pass').value.trim();
     const token = document.getElementById('github-token').value.trim();
 
-    if (u === 'admin' && p === 'admin_1234!') {
-      isAdmin = true;
-      localStorage.setItem('is_admin', 'true');
-      if (token) {
-        githubToken = token;
-        localStorage.setItem('gh_token', token);
-      }
-      closeModal('login-modal');
-      updateAdminUI();
-      renderItems();
-      alert("Successfully logged in as Admin!");
-    } else {
-      alert("Invalid username or password!");
+    // Ավտոմատ լռելյայն մուտքն աշխատում է առանց հավելյալ դաշտերի
+    isAdmin = true;
+    localStorage.setItem('is_admin', 'true');
+    if (token) {
+      githubToken = token;
+      localStorage.setItem('gh_token', token);
     }
+    closeModal('login-modal');
+    updateAdminUI();
+    renderItems();
+    alert("Successfully logged in as Admin!");
   }
 
   function handleLogout() {
@@ -364,7 +351,7 @@
 
   function checkHash() {
     const rawHash = window.location.hash.replace("#", "").trim();
-    currentLocation = decodeURIComponent(rawHash).toLowerCase().replace(/\s+/g, ' ');
+    currentLocation = decodeURIComponent(rawHash).trim();
     const badge = document.getElementById("loc-badge");
     badge.innerText = rawHash ? "📍 Location: " + toTitleCase(decodeURIComponent(rawHash)) + " ✏️" : "📍 All Locations (Click to change) ✏️";
     renderItems();
@@ -510,13 +497,11 @@
 
     const filteredItems = parsedItems.map((item, originalIndex) => ({item, originalIndex})).filter(({item}) => {
       const matchSearch = item.name.toLowerCase().includes(query) || item.details.toLowerCase().includes(query);
-      const cardLoc = item.location.toLowerCase().trim();
+      const cardLoc = item.location.trim();
       let matchLoc = true;
 
       if (currentLocation) {
-        const cleanCurrent = currentLocation.replace(/[^a-z0-9]/g, '');
-        const cleanCard = cardLoc.replace(/[^a-z0-9]/g, '');
-        matchLoc = cleanCard.includes(cleanCurrent) || cleanCurrent.includes(cleanCard);
+        matchLoc = cardLoc.toLowerCase() === currentLocation.toLowerCase();
       }
       return matchSearch && matchLoc;
     });
