@@ -88,7 +88,6 @@
     
     .item-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; cursor: pointer; }
     .item-title { font-size: 17px; font-weight: 700; color: #1a202c; line-height: 1.4; }
-    .item-extra-info { font-size: 13px; font-weight: normal; color: #718096; margin-left: 6px; }
     .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-left: 8px; border: 1px solid #cbd5e0; }
     
     .toggle-icon { font-size: 14px; color: #718096; margin-left: 10px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -114,7 +113,6 @@
     .details-table td { color: #2d3748; }
 
     .admin-actions { margin-top: 12px; display: flex; gap: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
-
     .empty-msg { text-align: center; color: #777; padding: 24px; background: #fff; border-radius: 10px; }
 
     .modal-overlay {
@@ -127,10 +125,8 @@
       justify-content: center;
       align-items: center;
       padding: 16px;
-      opacity: 0;
-      transition: opacity 0.25s ease;
     }
-    .modal-overlay.active { display: flex; opacity: 1; }
+    .modal-overlay.active { display: flex; }
     
     .modal-content {
       background: #fff;
@@ -141,41 +137,25 @@
       overflow-y: auto;
       padding: 20px;
       box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-      transform: scale(0.95);
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .modal-overlay.active .modal-content { transform: scale(1); }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; }
     .modal-title { font-size: 18px; font-weight: bold; color: #1a252c; }
-    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #a0aec0; transition: color 0.2s; }
-    .close-btn:hover { color: #2d3748; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #a0aec0; }
     
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 4px; }
     .form-control { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none; }
-    .form-control:focus { border-color: #3182ce; }
     .row-inputs { display: flex; gap: 8px; }
-
     .location-list { display: flex; flex-direction: column; gap: 8px; }
-    .location-item {
-      padding: 12px 16px;
-      background: #f7fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      color: #2d3748;
-      transition: all 0.2s;
-    }
-    .location-item:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; transform: translateX(2px); }
+    .location-item { padding: 12px 16px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-weight: 600; color: #2d3748; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <div class="admin-icon-btn" onclick="openLoginModal()" title="Admin Login">👤</div>
+    <div class="admin-icon-btn" id="admin-toggle-btn" onclick="openLoginModal()" title="Admin Login">👤</div>
     <h1>Laboratory Inventory</h1>
     <div id="loc-badge" class="location-badge" onclick="openLocationModal()">📍 All Locations (Click to change) ✏️</div>
     <div class="top-actions">
@@ -191,23 +171,29 @@
 <div id="login-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'login-modal')">
   <div class="modal-content" style="max-width: 350px;">
     <div class="modal-header">
-      <div class="modal-title">Admin Login</div>
+      <div class="modal-title" id="login-modal-title">Admin Login</div>
       <button class="close-btn" onclick="closeModal('login-modal')">✕</button>
     </div>
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="login-user" class="form-control" placeholder="admin">
+    <div id="login-form-fields">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="login-user" class="form-control" placeholder="admin">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!">
+      </div>
+      <div class="form-group">
+        <label>GitHub Personal Token</label>
+        <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
+        <small style="color: #718096; font-size: 11px;">Required to save changes to data.csv automatically.</small>
+      </div>
+      <button class="btn" style="width:100%; margin-top:10px;" onclick="handleLogin()">Login</button>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!">
+    <div id="logout-section" style="display:none; text-align: center;">
+      <p style="margin-bottom: 16px; color: #2d3748;">Admin mode is currently active.</p>
+      <button class="btn btn-danger" style="width:100%;" onclick="handleLogout()">Logout</button>
     </div>
-    <div class="form-group" id="token-group" style="display:none;">
-      <label>GitHub Personal Token (for auto-saving)</label>
-      <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
-      <small style="color: #718096; font-size: 11px;">Required to push changes to GitHub repository automatically.</small>
-    </div>
-    <button class="btn" style="width:100%; margin-top:10px;" onclick="handleLogin()">Login</button>
   </div>
 </div>
 
@@ -270,9 +256,7 @@
     <div class="row-inputs">
       <div class="form-group" style="flex:1;">
         <label>Location (Main)</label>
-        <select id="f-location" class="form-control" onchange="checkNewLocation(this)">
-          <!-- Dynamic options -->
-        </select>
+        <select id="f-location" class="form-control" onchange="checkNewLocation(this)"></select>
       </div>
       <div class="form-group" style="flex:1;">
         <label>Location 2 (Sub-loc)</label>
@@ -290,13 +274,72 @@
     "Shelf L", "Shelf R", "Wall-Mounted Unit", 
     "Wall Cabinet 1", "Wall Cabinet 2", "Floor Cabinet"
   ];
-  let isAdmin = false;
+  let isAdmin = localStorage.getItem('is_admin') === 'true';
   let githubToken = localStorage.getItem('gh_token') || "";
 
-  // GitHub repository settings (զետեղված են ավտոմատ աշխատելու համար)
+  // GitHub repository details
   const GH_OWNER = "mane-poghosyan";
   const GH_REPO = "lab-inventory";
   const GH_PATH = "data.csv";
+  let csvFileSha = "";
+
+  function updateAdminUI() {
+    const btn = document.getElementById('add-item-btn');
+    const iconBtn = document.getElementById('admin-toggle-btn');
+    if (isAdmin) {
+      btn.style.display = 'block';
+      iconBtn.style.background = '#bee3f8';
+      iconBtn.title = "Admin Mode Active";
+    } else {
+      btn.style.display = 'none';
+      iconBtn.style.background = '#edf2f7';
+      iconBtn.title = "Admin Login";
+    }
+  }
+
+  function openLoginModal() {
+    if (isAdmin) {
+      document.getElementById('login-modal-title').innerText = "Admin Settings";
+      document.getElementById('login-form-fields').style.display = 'none';
+      document.getElementById('logout-section').style.display = 'block';
+    } else {
+      document.getElementById('login-modal-title').innerText = "Admin Login";
+      document.getElementById('login-form-fields').style.display = 'block';
+      document.getElementById('logout-section').style.display = 'none';
+      document.getElementById('github-token').value = githubToken;
+    }
+    openModal('login-modal');
+  }
+
+  function handleLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value.trim();
+    const token = document.getElementById('github-token').value.trim();
+
+    if (u === 'admin' && p === 'admin_1234!') {
+      isAdmin = true;
+      localStorage.setItem('is_admin', 'true');
+      if (token) {
+        githubToken = token;
+        localStorage.setItem('gh_token', token);
+      }
+      closeModal('login-modal');
+      updateAdminUI();
+      renderItems();
+      alert("Successfully logged in as Admin!");
+    } else {
+      alert("Invalid username or password!");
+    }
+  }
+
+  function handleLogout() {
+    isAdmin = false;
+    localStorage.setItem('is_admin', 'false');
+    closeModal('login-modal');
+    updateAdminUI();
+    renderItems();
+    alert("Logged out successfully.");
+  }
 
   function toTitleCase(str) {
     if (!str) return '';
@@ -314,41 +357,6 @@
   function closeModalOnOverlay(e, id) { if (e.target.id === id) closeModal(id); }
 
   function openLocationModal() { openModal('loc-modal'); }
-  function openLoginModal() {
-    if (isAdmin) {
-      if (confirm("Logout from Admin mode?")) {
-        isAdmin = false;
-        document.getElementById('add-item-btn').style.display = 'none';
-        alert("Logged out successfully.");
-        renderItems();
-      }
-      return;
-    }
-    document.getElementById('token-group').style.display = 'block';
-    document.getElementById('github-token').value = githubToken;
-    openModal('login-modal');
-  }
-
-  function handleLogin() {
-    const u = document.getElementById('login-user').value.trim();
-    const p = document.getElementById('login-pass').value.trim();
-    const token = document.getElementById('github-token').value.trim();
-
-    if (u === 'admin' && p === 'admin_1234!') {
-      isAdmin = true;
-      if (token) {
-        githubToken = token;
-        localStorage.setItem('gh_token', token);
-      }
-      closeModal('login-modal');
-      document.getElementById('add-item-btn').style.display = 'block';
-      alert("Welcome Admin! You can now manage items.");
-      renderItems();
-    } else {
-      alert("Invalid username or password!");
-    }
-  }
-
   function selectLocation(locName) {
     window.location.hash = locName ? encodeURIComponent(locName) : "";
     closeModal('loc-modal');
@@ -393,17 +401,13 @@
         checkHash();
       })
       .catch(() => {
-        document.getElementById('inventory-list').innerHTML = `<div class="empty-msg" style="color:red;">Error loading CSV file.</div>`;
+        document.getElementById('inventory-list').innerHTML = `<div class="empty-msg" style="color:red;">Error loading data.csv file.</div>`;
       });
   }
-
-  let csvFileSha = ""; // GitHub file SHA for updates
 
   function processCSVData(text) {
     const rows = parseCSV(text);
     parsedItems = [];
-
-    // Extract unique locations from CSV
     let locSet = new Set(MAIN_LOCATIONS);
 
     for (let i = 1; i < rows.length; i++) {
@@ -422,13 +426,15 @@
       parsedItems.push(item);
       if (item.location) locSet.add(item.location);
     }
-
     MAIN_LOCATIONS = Array.from(locSet);
-    updateLocationDropdowns();
+    updateLocationsList();
   }
 
-  function updateLocationDropdowns() {
-    // Modal location list
+  function updateLocationsList() {
+    let locSet = new Set(MAIN_LOCATIONS);
+    parsedItems.forEach(i => { if (i.location) locSet.add(i.location); });
+    MAIN_LOCATIONS = Array.from(locSet);
+
     const modalList = document.getElementById('modal-loc-list');
     modalList.innerHTML = `<div class="location-item" onclick="selectLocation('')">🌐 Show All Locations</div>`;
     MAIN_LOCATIONS.forEach(loc => {
@@ -439,7 +445,6 @@
       modalList.appendChild(div);
     });
 
-    // Item form location select
     const select = document.getElementById('f-location');
     select.innerHTML = '';
     MAIN_LOCATIONS.forEach(loc => {
@@ -459,10 +464,8 @@
       const newLoc = prompt("Enter new location name:");
       if (newLoc && newLoc.trim()) {
         const formatted = toTitleCase(newLoc.trim());
-        if (!MAIN_LOCATIONS.includes(formatted)) {
-          MAIN_LOCATIONS.push(formatted);
-        }
-        updateLocationDropdowns();
+        if (!MAIN_LOCATIONS.includes(formatted)) MAIN_LOCATIONS.push(formatted);
+        updateLocationsList();
         selectEl.value = formatted;
       } else {
         selectEl.value = MAIN_LOCATIONS[0];
@@ -473,7 +476,6 @@
   function createItemCard(item, index) {
     const card = document.createElement('div');
     card.className = 'item-card';
-
     const qtyHtml = isAdmin ? `<span class="qty-badge">Qty: ${item.qty}</span>` : '';
 
     card.innerHTML = `
@@ -488,11 +490,11 @@
           ${item.details ? `<tr><th>Details</th><td>${item.details}</td></tr>` : ''}
           ${item.sterile ? `<tr><th>Sterile / Non-sterile</th><td>${item.sterile}</td></tr>` : ''}
           ${item.disposable ? `<tr><th>Disposable / Reusable</th><td>${item.disposable}</td></tr>` : ''}
-          ${item.location ? `<tr><th>Location</th><td>${item.location} ${item.subLoc ? `(${item.subLoc})` : ''}</td></tr>` : ''}
+          ${item.location ? `<tr><th>Location</th><td>${item.location}${item.subLoc ? `(${item.subLoc})` : ''}</td></tr>` : ''}
         </table>
         ${isAdmin ? `
           <div class="admin-actions">
-            <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="editItem(${index})">Edit</button>
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="openItemModal(${index})">Edit</button>
             <button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="deleteItem(${index})">Delete</button>
           </div>
         ` : ''}
@@ -554,11 +556,8 @@
   }
 
   function openItemModal(index = null) {
-    if (!isAdmin) {
-      alert("Please login as Admin first.");
-      return;
-    }
-    updateLocationDropdowns();
+    if (!isAdmin) return;
+    updateLocationsList();
     document.getElementById('edit-index').value = index !== null ? index : "";
     document.getElementById('item-modal-title').innerText = index !== null ? "Edit Item" : "Add New Item";
 
@@ -583,10 +582,6 @@
       document.getElementById('f-subloc').value = "";
     }
     openModal('item-modal');
-  }
-
-  function editItem(index) {
-    openItemModal(index);
   }
 
   function deleteItem(index) {
@@ -645,21 +640,19 @@
 
   async function saveDataToGitHub() {
     if (!githubToken) {
-      const tokenPrompt = prompt("Enter your GitHub Personal Access Token to save changes online:");
-      if (!tokenPrompt) {
-        alert("Changes saved locally, but not synced to GitHub because token was missing.");
-        renderItems();
+      githubToken = prompt("Enter your GitHub Personal Access Token to sync changes online:") || "";
+      if (githubToken) {
+        localStorage.setItem('gh_token', githubToken.trim());
+      } else {
+        alert("Token is required to save changes to GitHub!");
         return;
       }
-      githubToken = tokenPrompt.trim();
-      localStorage.setItem('gh_token', githubToken);
     }
 
     const csvContent = generateCSVText();
     const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
 
     try {
-      // 1. Get current file SHA
       const getRes = await fetch(apiUrl, {
         headers: { "Authorization": `token ${githubToken}` }
       });
@@ -668,7 +661,6 @@
         csvFileSha = fileData.sha;
       }
 
-      // 2. Update file on GitHub
       const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
@@ -692,10 +684,10 @@
     } catch (e) {
       alert("Network error while saving to GitHub.");
       console.error(e);
-      renderItems();
     }
   }
 
+  updateAdminUI();
   loadCSVData();
   window.addEventListener('hashchange', checkHash);
 </script>
