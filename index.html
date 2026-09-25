@@ -293,7 +293,7 @@
   let isAdmin = false;
   let githubToken = localStorage.getItem('gh_token') || "";
 
-  // GitHub repository settings (զետեղված են ավտոմատ աշխատելու համար)
+  // GitHub repository settings
   const GH_OWNER = "mane-poghosyan";
   const GH_REPO = "lab-inventory";
   const GH_PATH = "data.csv";
@@ -403,12 +403,44 @@
     const rows = parseCSV(text);
     parsedItems = [];
 
-    // Extract unique locations from CSV
     let locSet = new Set(MAIN_LOCATIONS);
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row[0]) continue;
+
+      let rawLoc = (row[6] || '').trim();
+      let rawSubLoc = (row[7] || '').trim();
+      let finalLoc = rawLoc;
+      let finalSubLoc = rawSubLoc;
+
+      // Կարգավորում ենք R (աջ) դարակները
+      if (/shelf\s*\d+\s*r/i.test(rawLoc)) {
+        finalLoc = "Shelf R";
+        const shelfNumMatch = rawLoc.match(/\d+/);
+        const shelfPrefix = shelfNumMatch ? `Shelf ${shelfNumMatch[0]}` : "";
+        finalSubLoc = finalSubLoc ? `${shelfPrefix}, ${rawSubLoc}` : shelfPrefix;
+      } 
+      // Կարգավորում ենք L (ձախ) դարակները
+      else if (/shelf\s*\d+\s*l/i.test(rawLoc)) {
+        finalLoc = "Shelf L";
+        const shelfNumMatch = rawLoc.match(/\d+/);
+        const shelfPrefix = shelfNumMatch ? `Shelf ${shelfNumMatch[0]}` : "";
+        finalSubLoc = finalSubLoc ? `${shelfPrefix}, ${rawSubLoc}` : shelfPrefix;
+      }
+
+      // Մյուս լոկացիաների ստանդարտացում և կրկնօրինակների բացառում
+      let lowerLoc = finalLoc.toLowerCase();
+      if (lowerLoc.includes('wall -mounted') || lowerLoc.includes('wall-mounted')) {
+        finalLoc = "Wall-Mounted Unit";
+      } else if (lowerLoc.includes('cabinet 1')) {
+        finalLoc = "Wall Cabinet 1";
+      } else if (lowerLoc.includes('cabinet 2')) {
+        finalLoc = "Wall Cabinet 2";
+      } else if (lowerLoc.includes('floor cabinet')) {
+        finalLoc = "Floor Cabinet";
+      }
+
       const item = {
         name: formatItemName(row[0]),
         qty: row[1] ? parseInt(row[1]) || 1 : 1,
@@ -416,9 +448,10 @@
         details: (row[3] || '').trim(),
         sterile: (row[4] || 'Non-sterile').trim(),
         disposable: (row[5] || 'Reusable').trim(),
-        location: toTitleCase((row[6] || '').trim()),
-        subLoc: toTitleCase((row[7] || '').trim())
+        location: toTitleCase(finalLoc),
+        subLoc: toTitleCase(finalSubLoc)
       };
+
       parsedItems.push(item);
       if (item.location) locSet.add(item.location);
     }
@@ -488,7 +521,7 @@
           ${item.details ? `<tr><th>Details</th><td>${item.details}</td></tr>` : ''}
           ${item.sterile ? `<tr><th>Sterile / Non-sterile</th><td>${item.sterile}</td></tr>` : ''}
           ${item.disposable ? `<tr><th>Disposable / Reusable</th><td>${item.disposable}</td></tr>` : ''}
-          ${item.location ? `<tr><th>Location</th><td>${item.location}${item.subLoc ? `(${item.subLoc})` : ''}</td></tr>` : ''}
+          ${item.location ? `<tr><th>Location</th><td>${item.location}${item.subLoc ? ` (${item.subLoc})` : ''}</td></tr>` : ''}
         </table>
         ${isAdmin ? `
           <div class="admin-actions">
@@ -659,7 +692,6 @@
     const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
 
     try {
-      // 1. Get current file SHA
       const getRes = await fetch(apiUrl, {
         headers: { "Authorization": `token ${githubToken}` }
       });
@@ -668,7 +700,6 @@
         csvFileSha = fileData.sha;
       }
 
-      // 2. Update file on GitHub
       const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
