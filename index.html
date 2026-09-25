@@ -176,6 +176,14 @@
     </div>
     <div id="login-form-fields">
       <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="login-user" class="form-control" placeholder="admin" value="admin">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-pass" class="form-control" placeholder="admin_1234!" value="admin_1234!">
+      </div>
+      <div class="form-group">
         <label>GitHub Personal Token</label>
         <input type="password" id="github-token" class="form-control" placeholder="ghp_...">
         <small style="color: #718096; font-size: 11px;">Required to save changes to data.csv automatically.</small>
@@ -304,19 +312,24 @@
   }
 
   function handleLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value.trim();
     const token = document.getElementById('github-token').value.trim();
 
-    // Ավտոմատ լռելյայն մուտքն աշխատում է առանց հավելյալ դաշտերի
-    isAdmin = true;
-    localStorage.setItem('is_admin', 'true');
-    if (token) {
-      githubToken = token;
-      localStorage.setItem('gh_token', token);
+    if (u === 'admin' && p === 'admin_1234!') {
+      isAdmin = true;
+      localStorage.setItem('is_admin', 'true');
+      if (token) {
+        githubToken = token;
+        localStorage.setItem('gh_token', token);
+      }
+      closeModal('login-modal');
+      updateAdminUI();
+      renderItems();
+      alert("Successfully logged in as Admin!");
+    } else {
+      alert("Invalid username or password!");
     }
-    closeModal('login-modal');
-    updateAdminUI();
-    renderItems();
-    alert("Successfully logged in as Admin!");
   }
 
   function handleLogout() {
@@ -326,11 +339,6 @@
     updateAdminUI();
     renderItems();
     alert("Logged out successfully.");
-  }
-
-  function toTitleCase(str) {
-    if (!str) return '';
-    return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
   }
 
   function formatItemName(str) {
@@ -353,7 +361,7 @@
     const rawHash = window.location.hash.replace("#", "").trim();
     currentLocation = decodeURIComponent(rawHash).trim();
     const badge = document.getElementById("loc-badge");
-    badge.innerText = rawHash ? "📍 Location: " + toTitleCase(decodeURIComponent(rawHash)) + " ✏️" : "📍 All Locations (Click to change) ✏️";
+    badge.innerText = rawHash ? "📍 Location: " + decodeURIComponent(rawHash) + " ✏️" : "📍 All Locations (Click to change) ✏️";
     renderItems();
   }
 
@@ -407,8 +415,8 @@
         details: (row[3] || '').trim(),
         sterile: (row[4] || 'Non-sterile').trim(),
         disposable: (row[5] || 'Reusable').trim(),
-        location: toTitleCase((row[6] || '').trim()),
-        subLoc: toTitleCase((row[7] || '').trim())
+        location: (row[6] || '').trim(),
+        subLoc: (row[7] || '').trim()
       };
       parsedItems.push(item);
       if (item.location) locSet.add(item.location);
@@ -450,7 +458,7 @@
     if (selectEl.value === "ADD_NEW") {
       const newLoc = prompt("Enter new location name:");
       if (newLoc && newLoc.trim()) {
-        const formatted = toTitleCase(newLoc.trim());
+        const formatted = newLoc.trim();
         if (!MAIN_LOCATIONS.includes(formatted)) MAIN_LOCATIONS.push(formatted);
         updateLocationsList();
         selectEl.value = formatted;
@@ -497,11 +505,10 @@
 
     const filteredItems = parsedItems.map((item, originalIndex) => ({item, originalIndex})).filter(({item}) => {
       const matchSearch = item.name.toLowerCase().includes(query) || item.details.toLowerCase().includes(query);
-      const cardLoc = item.location.trim();
       let matchLoc = true;
 
       if (currentLocation) {
-        matchLoc = cardLoc.toLowerCase() === currentLocation.toLowerCase();
+        matchLoc = item.location.toLowerCase() === currentLocation.toLowerCase();
       }
       return matchSearch && matchLoc;
     });
@@ -588,10 +595,10 @@
       qty: parseInt(document.getElementById('f-qty').value) || 1,
       status: document.getElementById('f-status').value,
       details: document.getElementById('f-details').value.trim(),
-      sterile: document.getElementById('f-sterile').value,
+      sterile: document.getElementById('f-sterile'].value,
       disposable: document.getElementById('f-disposable').value,
-      location: toTitleCase(document.getElementById('f-location').value),
-      subLoc: toTitleCase(document.getElementById('f-subloc').value)
+      location: document.getElementById('f-location').value.trim(),
+      subLoc: document.getElementById('f-subloc').value.trim()
     };
 
     const editIndex = document.getElementById('edit-index').value;
