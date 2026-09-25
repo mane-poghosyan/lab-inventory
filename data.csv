@@ -129,7 +129,7 @@ Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-ster
 "Petri dishes glass",5,"In Use","","Non-Sterile","Reusable","Wall Cabinet 1",""
 "Centrifuge Tube",1,"In Use","15 ml","Sterile","Disposable","Wall Cabinet 1",""
 "Spectrophotometer - Profesional and Portable Color Measurement",1,"In Use","","Non-Sterile","Reusable","Wall Cabinet 1",""
-"Paraformaldehyde (PFA)",1,"Stock","4%","","Reusable","Floor Cabinet 1",""
+"Paraformaldehyde (PFA)",1,"Stock","4%","Non-sterile","Reusable","Floor Cabinet 1",""
 "Acetic Acid",1,"Stock","12 ml","Non-Sterile","Reusable","Floor Cabinet 1",""
 "Potassium Chloride (KCl)",1,"Stock","2 ml","Non-Sterile","Reusable","Floor Cabinet 1",""
 "Hydrochloric Acid (HCl)",1,"Stock","2 ml","Non-Sterile","Reusable","Floor Cabinet 1",""
@@ -177,3 +177,4 @@ Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-ster
 "QIAamp DNA Mini Kit",1,"Stock","","Non-Sterile","Reusable","Floor Cabinet 1",""
 "Calcium Chloride (CaCl2​)",1,"Stock","0.2 M","Non-Sterile","Reusable","Floor Cabinet 1",""
 "Calcium Chloride (CaCl2​)",1,"Stock","1 M","Non-Sterile","Reusable","Floor Cabinet 1",""
+"Test",5,"In Use","","Sterile","Reusable","Wall Cabinet 1",""
