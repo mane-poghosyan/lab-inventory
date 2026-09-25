@@ -88,7 +88,6 @@
     
     .item-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; cursor: pointer; }
     .item-title { font-size: 17px; font-weight: 700; color: #1a202c; line-height: 1.4; }
-    .item-extra-info { font-size: 13px; font-weight: normal; color: #718096; margin-left: 6px; }
     .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-left: 8px; border: 1px solid #cbd5e0; }
     
     .toggle-icon { font-size: 14px; color: #718096; margin-left: 10px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -114,7 +113,6 @@
     .details-table td { color: #2d3748; }
 
     .admin-actions { margin-top: 12px; display: flex; gap: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
-
     .empty-msg { text-align: center; color: #777; padding: 24px; background: #fff; border-radius: 10px; }
 
     .modal-overlay {
@@ -276,7 +274,7 @@
       </div>
       <div class="form-group" style="flex:1;">
         <label>Location 2 (Sub-loc)</label>
-        <input type="text" id="f-subloc" class="form-control" placeholder="Shelf 1, etc.">
+        <input type="text" id="f-subloc" class="form-control" placeholder="Sub-location, etc.">
       </div>
     </div>
     <button class="btn" style="width:100%; margin-top:10px;" onclick="saveItem()">Save Item</button>
@@ -293,7 +291,6 @@
   let isAdmin = false;
   let githubToken = localStorage.getItem('gh_token') || "";
 
-  // GitHub repository settings
   const GH_OWNER = "mane-poghosyan";
   const GH_REPO = "lab-inventory";
   const GH_PATH = "data.csv";
@@ -414,34 +411,28 @@
       let finalLoc = rawLoc;
       let finalSubLoc = rawSubLoc;
 
-      // Հանում ենք բոքսերը և թողնում միայն դարակը (Shelf 1, Shelf 2 և այլն)
-      const combinedLocStr = (rawLoc + " " + rawSubLoc);
-      const shelfNumMatch = combinedLocStr.match(/shelf\s*(\d+)/i);
+      const combinedLocStr = (rawLoc + " " + rawSubLoc).toLowerCase();
 
-      if (shelfNumMatch) {
-        const shelfNum = shelfNumMatch[1];
-        finalSubLoc = `Shelf ${shelfNum}`;
-        
-        if (/r/i.test(combinedLocStr)) {
-          finalLoc = "Shelf R";
-        } else {
-          finalLoc = "Shelf L";
-        }
-      }
-
-      let lowerLoc = finalLoc.toLowerCase().replace(/\s+/g, ' ');
-      if (lowerLoc.includes('wall-mounted') || lowerLoc.includes('wall -mounted')) {
-        finalLoc = "Wall-Mounted Unit";
-      } else if (lowerLoc.includes('cabinet 1')) {
-        finalLoc = "Wall Cabinet 1";
-      } else if (lowerLoc.includes('cabinet 2')) {
-        finalLoc = "Wall Cabinet 2";
-      } else if (lowerLoc.includes('floor cabinet')) {
+      if (combinedLocStr.includes('floor cabinet')) {
         finalLoc = "Floor Cabinet";
-      } else if (lowerLoc.includes('shelf l')) {
-        finalLoc = "Shelf L";
-      } else if (lowerLoc.includes('shelf r')) {
-        finalLoc = "Shelf R";
+        finalSubLoc = rawSubLoc.replace(/floor\s*cabinet/gi, '').trim();
+      } else if (combinedLocStr.includes('wall-mounted') || combinedLocStr.includes('wall -mounted')) {
+        finalLoc = "Wall-Mounted Unit";
+      } else if (combinedLocStr.includes('cabinet 1')) {
+        finalLoc = "Wall Cabinet 1";
+      } else if (combinedLocStr.includes('cabinet 2')) {
+        finalLoc = "Wall Cabinet 2";
+      } else {
+        const shelfNumMatch = combinedLocStr.match(/shelf\s*(\d+)/i);
+        if (shelfNumMatch) {
+          const shelfNum = shelfNumMatch[1];
+          finalSubLoc = `Shelf ${shelfNum}`;
+          if (/r/i.test(combinedLocStr)) {
+            finalLoc = "Shelf R";
+          } else {
+            finalLoc = "Shelf L";
+          }
+        }
       }
 
       const item = {
@@ -706,7 +697,7 @@
         csvFileSha = fileData.sha;
       }
 
-      const putRes = await fetch(apiUrl, {
+      The putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
           "Authorization": `token ${githubToken}`,
