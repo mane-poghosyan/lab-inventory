@@ -429,9 +429,9 @@
         finalSubLoc = finalSubLoc ? `${shelfPrefix}, ${rawSubLoc}` : shelfPrefix;
       }
 
-      // Մյուս լոկացիաների ստանդարտացում և կրկնօրինակների բացառում
-      let lowerLoc = finalLoc.toLowerCase();
-      if (lowerLoc.includes('wall -mounted') || lowerLoc.includes('wall-mounted')) {
+      // Մյուս լոկացիաների ստանդարտացում և կրկնօրինակների բացառում (ռեգիստրի անզգայուն ստուգում)
+      let lowerLoc = finalLoc.toLowerCase().replace(/\s+/g, ' ');
+      if (lowerLoc.includes('wall-mounted') || lowerLoc.includes('wall -mounted')) {
         finalLoc = "Wall-Mounted Unit";
       } else if (lowerLoc.includes('cabinet 1')) {
         finalLoc = "Wall Cabinet 1";
@@ -439,6 +439,10 @@
         finalLoc = "Wall Cabinet 2";
       } else if (lowerLoc.includes('floor cabinet')) {
         finalLoc = "Floor Cabinet";
+      } else if (lowerLoc.includes('shelf l')) {
+        finalLoc = "Shelf L";
+      } else if (lowerLoc.includes('shelf r')) {
+        finalLoc = "Shelf R";
       }
 
       const item = {
@@ -456,7 +460,13 @@
       if (item.location) locSet.add(item.location);
     }
 
-    MAIN_LOCATIONS = Array.from(locSet);
+    // Վերջնական մաքրում MAIN_LOCATIONS-ից կրկնօրինակները հանելու համար (ըստ փոքրատառ համընկնման)
+    let uniqueMap = new Map();
+    locSet.forEach(loc => {
+      uniqueMap.set(loc.toLowerCase().trim(), loc);
+    });
+    MAIN_LOCATIONS = Array.from(uniqueMap.values());
+
     updateLocationDropdowns();
   }
 
@@ -556,18 +566,12 @@
     }
 
     if (query) {
-      // Եթե որոնում ենք, ցույց ենք տալիս միանգամից ըստ գտնվածների
       filteredItems.forEach(({item, originalIndex}) => {
         container.appendChild(createItemCard(item, originalIndex));
       });
     } else {
       const grouped = {};
-      filteredItems.filter(({item}) => {
-        if (!currentLocation) return true;
-        // Եթե կոնկրետ լոկացիայի մեջ ենք, խմբավորում ենք ըստ ենթալոկացիայի (subLoc) կամ ասում ենք General
-        return true;
-      }).forEach(({item, originalIndex}) => {
-        // Եթե լոկացիա է ընտրված, խմբավորում ենք ըստ subLoc-ի (օրինակ՝ Shelf 1, Shelf 2 ևն), հակառակ դեպքում՝ ըստ location-ի
+      filteredItems.forEach(({item, originalIndex}) => {
         let groupKey = currentLocation ? (item.subLoc || "General") : (item.location || "Other Locations");
         if (!grouped[groupKey]) grouped[groupKey] = [];
         grouped[groupKey].push({item, originalIndex});
