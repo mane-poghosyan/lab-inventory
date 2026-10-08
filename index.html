@@ -400,53 +400,47 @@
     parsedItems = [];
 
     let locSet = new Set(MAIN_LOCATIONS);
+    let currentItem = null;
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (!row[0]) continue;
+      const itemName = row[0] ? row[0].trim() : "";
 
-      let rawLoc = (row[6] || '').trim();
-      let rawSubLoc = (row[7] || '').trim();
-      let finalLoc = rawLoc;
-      let finalSubLoc = rawSubLoc;
-
-      const combinedLocStr = (rawLoc + " " + rawSubLoc).toLowerCase();
-
-      if (combinedLocStr.includes('floor cabinet')) {
-        finalLoc = "Floor Cabinet";
-        finalSubLoc = rawSubLoc.replace(/floor\s*cabinet/gi, '').trim();
-      } else if (combinedLocStr.includes('wall-mounted') || combinedLocStr.includes('wall -mounted')) {
-        finalLoc = "Wall-Mounted Unit";
-      } else if (combinedLocStr.includes('cabinet 1')) {
-        finalLoc = "Wall Cabinet 1";
-      } else if (combinedLocStr.includes('cabinet 2')) {
-        finalLoc = "Wall Cabinet 2";
+      if (itemName !== "") {
+        if (currentItem) {
+          finalizeItem(currentItem, locSet);
+          parsedItems.push(currentItem);
+        }
+        currentItem = {
+          name: formatItemName(itemName),
+          qtyVal: row[1] ? row[1].trim() : "",
+          statusVal: row[2] ? row[2].trim() : "",
+          detailsList: [],
+          sterileVal: row[4] ? row[4].trim() : "",
+          disposableVal: row[5] ? row[5].trim() : "",
+          rawLoc: row[6] ? row[6].trim() : "",
+          rawSubLoc: row[7] ? row[7].trim() : ""
+        };
+        if (row[3] && row[3].trim() !== "" && row[3].trim() !== "nan") {
+          currentItem.detailsList.push(row[3].trim());
+        }
       } else {
-        const shelfNumMatch = combinedLocStr.match(/shelf\s*(\d+)/i);
-        if (shelfNumMatch) {
-          const shelfNum = shelfNumMatch[1];
-          finalSubLoc = `Shelf ${shelfNum}`;
-          if (/r/i.test(combinedLocStr)) {
-            finalLoc = "Shelf R";
-          } else {
-            finalLoc = "Shelf L";
+        if (currentItem) {
+          if (row[3] && row[3].trim() !== "" && row[3].trim() !== "nan") {
+            currentItem.detailsList.push(row[3].trim());
           }
+          if (!currentItem.qtyVal && row[1]) currentItem.qtyVal = row[1].trim();
+          if (!currentItem.statusVal && row[2]) currentItem.statusVal = row[2].trim();
+          if (!currentItem.sterileVal && row[4]) currentItem.sterileVal = row[4].trim();
+          if (!currentItem.disposableVal && row[5]) currentItem.disposableVal = row[5].trim();
+          if (!currentItem.rawLoc && row[6]) currentItem.rawLoc = row[6].trim();
+          if (!currentItem.rawSubLoc && row[7]) currentItem.rawSubLoc = row[7].trim();
         }
       }
-
-      const item = {
-        name: formatItemName(row[0]),
-        qty: row[1] ? parseInt(row[1]) || 1 : 1,
-        status: (row[2] || 'Stock').trim(),
-        details: (row[3] || '').trim(),
-        sterile: (row[4] || 'Non-sterile').trim(),
-        disposable: (row[5] || 'Reusable').trim(),
-        location: toTitleCase(finalLoc),
-        subLoc: toTitleCase(finalSubLoc)
-      };
-
-      parsedItems.push(item);
-      if (item.location) locSet.add(item.location);
+    }
+    if (currentItem) {
+      finalizeItem(currentItem, locSet);
+      parsedItems.push(currentItem);
     }
 
     let uniqueMap = new Map();
@@ -456,6 +450,18 @@
     MAIN_LOCATIONS = Array.from(uniqueMap.values());
 
     updateLocationDropdowns();
+  }
+
+  function finalizeItem(item, locSet) {
+    item.qty = item.qtyVal ? (parseInt(item.qtyVal) || 1) : 1;
+    item.status = (item.statusVal || 'Stock').trim();
+    item.details = item.detailsList.join(', ');
+    item.sterile = (item.sterileVal || 'Non-sterile').trim();
+    item.disposable = (item.disposableVal || 'Reusable').trim();
+    item.location = item.rawLoc ? toTitleCase(item.rawLoc) : "Other Locations";
+    item.subLoc = item.rawSubLoc ? toTitleCase(item.rawSubLoc) : "";
+
+    if (item.location && item.location !== "Other Locations") locSet.add(item.location);
   }
 
   function updateLocationDropdowns() {
@@ -640,7 +646,9 @@
       sterile: document.getElementById('f-sterile').value,
       disposable: document.getElementById('f-disposable').value,
       location: toTitleCase(document.getElementById('f-location').value),
-      subLoc: toTitleCase(document.getElementById('f-subloc').value)
+      subLoc: toTitleCase(document.getElementById('f-subloc').value),
+      rawLoc: document.getElementById('f-location').value,
+      rawSubLoc: document.getElementById('f-subloc').value
     };
 
     const editIndex = document.getElementById('edit-index').value;
@@ -674,9 +682,9 @@
 
   async function saveDataToGitHub() {
     if (!githubToken) {
-      const tokenPrompt = prompt("Enter your GitHub Personal Access Token to save changes online:");
+      const tokenPrompt = prompt("GitHub Personal Token required to save:");
       if (!tokenPrompt) {
-        alert("Changes saved locally, but not synced to GitHub because token was missing.");
+        alert("Changes saved locally, but not synced to GitHub.");
         renderItems();
         return;
       }
@@ -717,9 +725,7 @@
         alert("Error saving to GitHub: " + (err.message || "Unauthorized token"));
       }
     } catch (e) {
-      alert("Network error while saving to GitHub.");
-      console.error(e);
-      renderItems();
+      alert("Network error while saving.");
     }
   }
 
