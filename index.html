@@ -293,12 +293,21 @@
     "Shelf L", "Shelf R", "Wall-Mounted Unit", 
     "Wall Cabinet 1", "Wall Cabinet 2", "Floor Cabinet"
   ];
-  let isAdmin = false;
+  
+  // Պահպանում ենք ադմինի վիճակը localStorage-ում
+  let isAdmin = localStorage.getItem('is_admin') === 'true';
   let githubToken = localStorage.getItem('gh_token') || "";
 
   const GH_OWNER = "mane-poghosyan";
   const GH_REPO = "lab-inventory";
   const GH_PATH = "data.csv";
+
+  // Եթե ադմին է, միանգամից ցույց տալ Add Item կոճակը
+  window.addEventListener('DOMContentLoaded', () => {
+    if (isAdmin) {
+      document.getElementById('add-item-btn').style.display = 'block';
+    }
+  });
 
   function toTitleCase(str) {
     if (!str) return '';
@@ -320,6 +329,7 @@
     if (isAdmin) {
       if (confirm("Logout from Admin mode?")) {
         isAdmin = false;
+        localStorage.removeItem('is_admin');
         document.getElementById('add-item-btn').style.display = 'none';
         alert("Logged out successfully.");
         renderItems();
@@ -338,6 +348,7 @@
 
     if (u === 'admin' && p === 'admin_1234!') {
       isAdmin = true;
+      localStorage.setItem('is_admin', 'true');
       if (token) {
         githubToken = token;
         localStorage.setItem('gh_token', token);
@@ -400,6 +411,23 @@
   }
 
   let csvFileSha = "";
+
+  // Թարմացնում ենք SHA-ն ամեն անգամ փոփոխություն անելուց առաջ
+  async function fetchLatestSha() {
+    const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+    try {
+      const getRes = await fetch(apiUrl, {
+        headers: { "Authorization": `token ${githubToken}` },
+        cache: "no-store"
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        csvFileSha = fileData.sha;
+      }
+    } catch (e) {
+      console.error("Error fetching latest SHA:", e);
+    }
+  }
 
   function processCSVData(text) {
     const rows = parseCSV(text);
@@ -523,7 +551,6 @@
 
     const qtyHtml = isAdmin ? `<span class="qty-badge">Qty: ${item.qty}</span>` : '';
     
-    // Ստեղծում ենք կարճ դետալների հատված (մինչև 25 սիմվոլ) անվան կողքը դնելու համար
     let shortDetails = "";
     if (item.details) {
       shortDetails = item.details.length > 25 ? item.details.substring(0, 25) + "..." : item.details;
@@ -715,18 +742,13 @@
       localStorage.setItem('gh_token', githubToken);
     }
 
+    // Ամեն անգամ պահպանելուց առաջ անմիջապես ստանում ենք GitHub-ի ամենաթարմ SHA-ն
+    await fetchLatestSha();
+
     const csvContent = generateCSVText();
     const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
 
     try {
-      const getRes = await fetch(apiUrl, {
-        headers: { "Authorization": `token ${githubToken}` }
-      });
-      if (getRes.ok) {
-        const fileData = await getRes.json();
-        csvFileSha = fileData.sha;
-      }
-
       const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
@@ -741,6 +763,8 @@
       });
 
       if (putRes.ok) {
+        const resJson = await putRes.json();
+        csvFileSha = resJson.content.sha; // Թարմացնում ենք SHA-ն հաջորդ պահպանման համար
         alert("Successfully saved and synced with GitHub!");
         loadCSVData();
       } else {
