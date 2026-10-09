@@ -116,9 +116,12 @@ Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-ster
 "Pipette tips",1,"In Use","200 ul","Non-Sterile","Disposable","Wall-mounted Unit","2l"
 "Pipette tips",1,"In Use","1000 ml","Non-Sterile","Disposable","Wall-mounted Unit","2l"
 "Cell culture plate",1,"In Use","Flat bottom with lid, Tissue culture treated, Gamma sterilized, R-Nase /Dnase-free, Polystyrene, 1/Pack, For Labaratory use only, 12 well","Sterile","Disposable","Wall Cabinet 1","1l"
-"Cell culture plate",1,"In Use","R-Nase /Dnase-free, Human DNA and pyrogens, Contents non cytotoxic, 6 well","Non-sterile","Disposable","Wall-mounted Unit","1l"
+"Cell culture plate",1,"In Use","R-Nase /Dnase-free, Human DNA and pyrogens, Contents non cytotoxic, 6 well","Non-sterile","Disposable","Wall Cabinet 1","1l"
 "Cell culture plate",1,"In Use","R-Nase /Dnase-free,Human DNA and pyrogens, Contents non cytotoxic,  24 well","Non-sterile","Disposable","Wall-mounted Unit","1l"
-"Cell culture plate 48 well",1,"In Use","Flat bottom, Tissue culture treated, Polystyrene, R-Nase /Dnase free, Pyrogen free","Sterile","Disposable","Wall Cabinet 1","1l"
+"Cell culture plate 48 well",1,"In Use","Flat bottom, Tissue culture treated, 
+Polystyrene, 
+R-Nase /Dnase free, 
+Pyrogen free","Sterile","Disposable","Wall-mounted Unit","1l"
 "Cell culture plate",1,"In Use","Flat bottom, Tissue culture treated, Polystyrene, R-Nase /Dnase free, Pyrogen free, 96 well","Sterile","Disposable","Wall-mounted Unit","1l"
 "Petri dishes",1,"In Use","90mm x 15mm","Sterile","Disposable","Wall Cabinet 1",""
 "Cell and Tissue Culture flask",1,"In Use","250 ml, Dnase/Rnase-free","Sterile","Disposable","Wall-mounted Unit","1l"
