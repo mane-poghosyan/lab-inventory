@@ -122,8 +122,8 @@ Item name and description,Qty.,Status (In Use/ Stock),Details,Sterile / Non-ster
 "Cell culture plate",1,"In Use","Flat bottom, Tissue culture treated, Polystyrene, R-Nase /Dnase free, Pyrogen free, 96 well","Sterile","Disposable","Wall Cabinet 1","1l"
 "Petri dishes",1,"In Use","90mm x 15mm","Sterile","Disposable","Wall Cabinet 1",""
 "Cell and Tissue Culture flask",1,"In Use","250 ml, Dnase/Rnase-free","Sterile","Disposable","Wall-mounted Unit","1l"
-"Droper",120,"In Use","3 ml","Sterile","Disposable","Wall-mounted Unit","1l"
-"Transfer pipette",500,"In Use","3 ml","Non-Sterile","Disposable","Wall Cabinet 1",""
+"Transfer pipette",120,"In Use","3 ml","Sterile","Disposable","Wall-mounted Unit","1l"
+"Droper",500,"In Use","3 ml","","Disposable","Wall Cabinet 1",""
 "ELISA plate microlon",1,"In Use","96 well, U-shape, 
 High binding","Sterile","Disposable","Wall Cabinet 1",""
 "Petri dishes",4,"In Use","20pcs/pack","Sterile","Disposable","Wall Cabinet 1",""
