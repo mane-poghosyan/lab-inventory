@@ -92,7 +92,8 @@
     .item-subtitle { font-size: 13px; color: #718096; font-weight: normal; }
     
     .header-right { display: flex; align-items: center; gap: 10px; }
-    .card-location-hint { font-size: 12px; color: #a0aec0; font-weight: 500; background: #f7fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; }
+    .card-location-hint { font-size: 12px; color: #a0aec0; font-weight: 500; background: #f7fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; display: none; }
+    .card-location-hint.show { display: inline-block; }
     
     .qty-badge { background: #edf2f7; color: #2d3748; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; border: 1px solid #cbd5e0; }
     
@@ -294,7 +295,6 @@
     "Wall Cabinet 1", "Wall Cabinet 2", "Floor Cabinet"
   ];
   
-  // Պահպանում ենք ադմինի վիճակը localStorage-ում
   let isAdmin = localStorage.getItem('is_admin') === 'true';
   let githubToken = localStorage.getItem('gh_token') || "";
 
@@ -302,7 +302,6 @@
   const GH_REPO = "lab-inventory";
   const GH_PATH = "data.csv";
 
-  // Եթե ադմին է, միանգամից ցույց տալ Add Item կոճակը
   window.addEventListener('DOMContentLoaded', () => {
     if (isAdmin) {
       document.getElementById('add-item-btn').style.display = 'block';
@@ -412,7 +411,6 @@
 
   let csvFileSha = "";
 
-  // Թարմացնում ենք SHA-ն ամեն անգամ փոփոխություն անելուց առաջ
   async function fetchLatestSha() {
     const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
     try {
@@ -545,7 +543,7 @@
     }
   }
 
-  function createItemCard(item, index) {
+  function createItemCard(item, index, isSearching) {
     const card = document.createElement('div');
     card.className = 'item-card';
 
@@ -556,6 +554,9 @@
       shortDetails = item.details.length > 25 ? item.details.substring(0, 25) + "..." : item.details;
     }
 
+    // Եթե search է արվում, class-ին ավելացնում ենք 'show', որ երևա
+    const hintClass = isSearching && item.location ? "card-location-hint show" : "card-location-hint";
+
     card.innerHTML = `
       <div class="item-header" onclick="toggleCard(this)">
         <div class="item-title-wrapper">
@@ -564,7 +565,7 @@
           ${qtyHtml}
         </div>
         <div class="header-right">
-          ${item.location ? `<span class="card-location-hint">📍 ${item.location}</span>` : ''}
+          ${item.location ? `<span class="${hintClass}">📍 ${item.location}</span>` : ''}
           <div class="toggle-icon">▼</div>
         </div>
       </div>
@@ -591,6 +592,7 @@
   function renderItems() {
     const container = document.getElementById('inventory-list');
     const query = document.getElementById('search').value.toLowerCase().trim();
+    const isSearching = query.length > 0; // Ստուգում ենք՝ արդյոք որոնում է կատարվում
     container.innerHTML = '';
 
     const filteredItems = parsedItems.map((item, originalIndex) => ({item, originalIndex})).filter(({item}) => {
@@ -613,7 +615,7 @@
 
     if (query) {
       filteredItems.forEach(({item, originalIndex}) => {
-        container.appendChild(createItemCard(item, originalIndex));
+        container.appendChild(createItemCard(item, originalIndex, isSearching));
       });
     } else {
       const grouped = {};
@@ -630,7 +632,7 @@
         container.appendChild(subHeader);
 
         grouped[groupKey].forEach(({item, originalIndex}) => {
-          container.appendChild(createItemCard(item, originalIndex));
+          container.appendChild(createItemCard(item, originalIndex, isSearching));
         });
       });
     }
@@ -742,7 +744,6 @@
       localStorage.setItem('gh_token', githubToken);
     }
 
-    // Ամեն անգամ պահպանելուց առաջ անմիջապես ստանում ենք GitHub-ի ամենաթարմ SHA-ն
     await fetchLatestSha();
 
     const csvContent = generateCSVText();
@@ -764,7 +765,7 @@
 
       if (putRes.ok) {
         const resJson = await putRes.json();
-        csvFileSha = resJson.content.sha; // Թարմացնում ենք SHA-ն հաջորդ պահպանման համար
+        csvFileSha = resJson.content.sha;
         alert("Successfully saved and synced with GitHub!");
         loadCSVData();
       } else {
